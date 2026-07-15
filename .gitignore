@@ -1,0 +1,58 @@
+# Root virtual environments
+.venv/
+venv/
+
+# Frontend dependencies and generated builds
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Python virtual environments and cache
+backend/.venv/
+backend/venv/
+backend/env/
+backend/ENV/
+backend/utils/__pycache__/
+backend/routes/__pycache__/
+backend/controllers/__pycache__/
+backend/models/__pycache__/
+backend/database/__pycache__/
+backend/__pycache__/
+backend/**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment secret files (CRITICAL to prevent leaks!)
+.env
+*.env
+backend/.env
+frontend/.env
+
+# SQLite databases and temporary logs
+database/grocery.db
+database/*.db-journal
+database/*.db-shm
+database/*.db-wal
+backend/tests/test_grocery.db
+*.db
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
