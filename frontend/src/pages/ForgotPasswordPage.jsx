@@ -32,10 +32,15 @@ export default function ForgotPasswordPage() {
     <div className="auth-layout">
       <div className="auth-card animate-fade-in">
         <div className="auth-card__header">
-          <Link className="auth-logo" to="/">
+          <a 
+            className="auth-logo" 
+            href="/" 
+            onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}
+            title="Reload Home Page"
+          >
             <span className="brand-logo-icon">🍏</span>
             <strong>Grainex</strong>
-          </Link>
+          </a>
           <h2>Reset Password</h2>
           <p>Retrieve access to your store database profile</p>
         </div>

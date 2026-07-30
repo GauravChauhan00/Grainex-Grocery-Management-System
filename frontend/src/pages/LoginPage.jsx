@@ -43,10 +43,15 @@ export default function LoginPage() {
     <div className="auth-layout">
       <div className="auth-card animate-fade-in">
         <div className="auth-card__header">
-          <Link className="auth-logo" to="/">
+          <a 
+            className="auth-logo" 
+            href="/" 
+            onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}
+            title="Reload Home Page"
+          >
             <span className="brand-logo-icon">🍏</span>
             <strong>Grainex</strong>
-          </Link>
+          </a>
           <h2>Welcome Back</h2>
           <p>Access your store dashboard or administration panel</p>
         </div>

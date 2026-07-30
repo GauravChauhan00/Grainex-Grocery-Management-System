@@ -57,10 +57,15 @@ export default function RegisterPage() {
     <div className="auth-layout">
       <div className="auth-card animate-fade-in">
         <div className="auth-card__header">
-          <Link className="auth-logo" to="/">
+          <a 
+            className="auth-logo" 
+            href="/" 
+            onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}
+            title="Reload Home Page"
+          >
             <span className="brand-logo-icon">🍏</span>
             <strong>Grainex</strong>
-          </Link>
+          </a>
           <h2>Create Store Account</h2>
           <p>Register your grocery store and initialize your dashboard</p>
         </div>

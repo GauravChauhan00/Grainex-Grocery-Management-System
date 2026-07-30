@@ -118,7 +118,12 @@ export default function LandingPage() {
       {/* Navigation Header */}
       <header className="landing-nav">
         <div className="landing-nav__container">
-          <div className="landing-nav__logo">
+          <div 
+            className="landing-nav__logo" 
+            onClick={() => window.location.href = '/'} 
+            style={{ cursor: 'pointer' }}
+            title="Reload Page"
+          >
             <span className="brand-logo-icon">🍏</span>
             <strong>Grainex</strong>
           </div>

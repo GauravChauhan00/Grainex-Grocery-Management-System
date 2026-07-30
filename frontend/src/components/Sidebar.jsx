@@ -33,13 +33,18 @@ export default function Sidebar({ isOpen, onClose }) {
   return (
     <>
       <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
-        <div className="sidebar__brand">
+        <div 
+          className="sidebar__brand" 
+          onClick={() => window.location.href = '/dashboard'} 
+          style={{ cursor: 'pointer' }}
+          title="Reload Dashboard"
+        >
           <div className="brand-mark"><ShoppingBasket size={24} /></div>
           <div>
             <strong>Grainex</strong>
             <span>Store Operations</span>
           </div>
-          <button className="sidebar__close" type="button" onClick={onClose}>
+          <button className="sidebar__close" type="button" onClick={(e) => { e.stopPropagation(); onClose(); }}>
             <X size={20} />
           </button>
         </div>
