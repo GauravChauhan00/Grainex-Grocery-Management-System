@@ -1,27 +1,35 @@
 """URL definitions for sale endpoints with token authentication protection."""
 
-from flask import Blueprint, g, request
+from typing import Optional
+from fastapi import APIRouter, Depends
 
 from controllers import sale_controller
-from utils.auth import token_required
+from schemas.sale_schema import SaleCreateSchema
+from utils.auth import get_current_user
 
-sale_blueprint = Blueprint("sales", __name__)
+sale_router = APIRouter(tags=["Sales"])
 
 
-@sale_blueprint.get("")
-@token_required
-def list_sales():
+@sale_router.get("")
+def list_sales(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: str = "100",
+    current_user: dict = Depends(get_current_user),
+):
     return sale_controller.list_sales(
-        store_id=g.store_id,
-        start_date=request.args.get("start_date"),
-        end_date=request.args.get("end_date"),
-        limit_value=request.args.get("limit", "100"),
+        store_id=current_user.get("store_id"),
+        start_date=start_date,
+        end_date=end_date,
+        limit_value=limit,
     )
 
 
-@sale_blueprint.post("")
-@token_required
-def create_sale():
+@sale_router.post("")
+def create_sale(
+    payload: SaleCreateSchema,
+    current_user: dict = Depends(get_current_user),
+):
     return sale_controller.create_sale(
-        g.store_id, request.get_json(silent=True) or {}
+        current_user.get("store_id"), payload.model_dump()
     )

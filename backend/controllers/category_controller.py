@@ -1,8 +1,9 @@
 """Validation and response logic for category endpoints with store isolation."""
 
 import sqlite3
-from flask import jsonify
+
 from models import category_model
+from utils.response import jsonify
 
 
 def _validate_category(payload: dict) -> tuple[str, str]:
@@ -27,17 +28,14 @@ def create_category(store_id: int, payload: dict):
     try:
         name, description = _validate_category(payload)
         category = category_model.create_category(store_id, name, description)
-        return (
-            jsonify({"message": "Category added successfully.", "data": category}),
-            201,
+        return jsonify(
+            {"message": "Category added successfully.", "data": category}, 201
         )
     except ValueError as error:
-        return jsonify({"message": str(error)}), 400
+        return jsonify({"message": str(error)}, 400)
     except sqlite3.IntegrityError:
-        return (
-            jsonify(
-                {"message": "A category with this name already exists in your store."}
-            ),
+        return jsonify(
+            {"message": "A category with this name already exists in your store."},
             409,
         )
 
@@ -49,34 +47,30 @@ def update_category(category_id: int, store_id: int, payload: dict):
             category_id, store_id, name, description
         )
         if category is None:
-            return jsonify({"message": "Category not found."}), 404
+            return jsonify({"message": "Category not found."}, 404)
         return jsonify({"message": "Category updated successfully.", "data": category})
     except ValueError as error:
-        return jsonify({"message": str(error)}), 400
+        return jsonify({"message": str(error)}, 400)
     except sqlite3.IntegrityError:
-        return (
-            jsonify(
-                {"message": "A category with this name already exists in your store."}
-            ),
+        return jsonify(
+            {"message": "A category with this name already exists in your store."},
             409,
         )
 
 
 def delete_category(category_id: int, store_id: int):
     if category_model.get_category_by_id(category_id, store_id) is None:
-        return jsonify({"message": "Category not found."}), 404
+        return jsonify({"message": "Category not found."}, 404)
 
     product_count = category_model.count_products_in_category(category_id, store_id)
     if product_count > 0:
-        return (
-            jsonify(
-                {
-                    "message": (
-                        f"This category contains {product_count} product(s). "
-                        "Move or delete those products first."
-                    )
-                }
-            ),
+        return jsonify(
+            {
+                "message": (
+                    f"This category contains {product_count} product(s). "
+                    "Move or delete those products first."
+                )
+            },
             409,
         )
 

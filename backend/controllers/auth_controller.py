@@ -1,20 +1,19 @@
 """Controller logic for authentication and account operations."""
 
+import os
 import re
-from flask import jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from models import auth_model
 from utils.auth import generate_token
-
-import os
+from utils.response import jsonify
 
 # Configurable super admin credentials
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@grainex.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "adminpassword")
 
 # Email format validator — must be something@something.tld
-_EMAIL_RE = re.compile(r'^[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}$')
+_EMAIL_RE = re.compile(r"^[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,}$")
 
 
 def register_store(payload: dict):
@@ -26,29 +25,28 @@ def register_store(payload: dict):
     password = str(payload.get("password", ""))
 
     if not name or not owner_name or not email or not password:
-        return jsonify({"message": "All required fields must be filled."}), 400
+        return jsonify({"message": "All required fields must be filled."}, 400)
 
     # Strict email format check
     if not _EMAIL_RE.match(email):
-        return jsonify({"message": "Please enter a valid email address (e.g. name@gmail.com)."}), 400
-
-    if len(password) < 6:
-        return (
-            jsonify({"message": "Password must be at least 6 characters long."}),
+        return jsonify(
+            {"message": "Please enter a valid email address (e.g. name@gmail.com)."},
             400,
         )
 
+    if len(password) < 6:
+        return jsonify({"message": "Password must be at least 6 characters long."}, 400)
+
     if email == ADMIN_EMAIL:
-        return jsonify({"message": "This email address is reserved."}), 400
+        return jsonify({"message": "This email address is reserved."}, 400)
 
     if auth_model.store_exists_by_email(email):
-        return (
-            jsonify({"message": "A store owner with this email already exists."}),
-            409,
+        return jsonify(
+            {"message": "A store owner with this email already exists."}, 409
         )
 
     if auth_model.store_exists_by_name(name):
-        return jsonify({"message": "A store with this name already exists."}), 409
+        return jsonify({"message": "A store with this name already exists."}, 409)
 
     password_hash = generate_password_hash(password)
 
@@ -74,8 +72,8 @@ def register_store(payload: dict):
         token = generate_token(user_payload)
 
         # Trigger admin notification email
-        from utils.email import send_email
         from config import ADMIN_NOTIFICATION_EMAIL
+        from utils.email import send_email
 
         email_subject = f"New Store Registered: {name}"
         email_html = f"""
@@ -90,18 +88,16 @@ def register_store(payload: dict):
         """
         send_email(ADMIN_NOTIFICATION_EMAIL, email_subject, email_html)
 
-        return (
-            jsonify(
-                {
-                    "message": "Store registered successfully.",
-                    "token": token,
-                    "user": user_payload,
-                }
-            ),
+        return jsonify(
+            {
+                "message": "Store registered successfully.",
+                "token": token,
+                "user": user_payload,
+            },
             201,
         )
     except Exception as e:
-        return jsonify({"message": f"Registration failed: {str(e)}"}), 500
+        return jsonify({"message": f"Registration failed: {str(e)}"}, 500)
 
 
 def login(payload: dict):
@@ -110,11 +106,14 @@ def login(payload: dict):
     password = str(payload.get("password", ""))
 
     if not email or not password:
-        return jsonify({"message": "Email and password are required."}), 400
+        return jsonify({"message": "Email and password are required."}, 400)
 
     # Validate email format (skip for admin login)
     if email != ADMIN_EMAIL and not _EMAIL_RE.match(email):
-        return jsonify({"message": "Please enter a valid email address (e.g. name@gmail.com)."}), 400
+        return jsonify(
+            {"message": "Please enter a valid email address (e.g. name@gmail.com)."},
+            400,
+        )
 
     # 1. Super Admin authentication
     if email == ADMIN_EMAIL:
@@ -133,25 +132,23 @@ def login(payload: dict):
                 }
             )
         else:
-            return jsonify({"message": "Invalid password for administrator."}), 401
+            return jsonify({"message": "Invalid password for administrator."}, 401)
 
     # 2. Store Owner tenant authentication
     store = auth_model.get_store_by_email(email)
     if not store:
-        return jsonify({"message": "No account found with this email."}), 401
+        return jsonify({"message": "No account found with this email."}, 401)
 
     if store["status"] == "suspended":
-        return (
-            jsonify(
-                {
-                    "message": "This store account has been suspended. Please contact customer support."
-                }
-            ),
+        return jsonify(
+            {
+                "message": "This store account has been suspended. Please contact customer support."
+            },
             403,
         )
 
     if not check_password_hash(store["password_hash"], password):
-        return jsonify({"message": "Invalid email or password."}), 401
+        return jsonify({"message": "Invalid email or password."}, 401)
 
     user_payload = {
         "store_id": store["id"],
@@ -176,21 +173,17 @@ def forgot_password(payload: dict):
     """Simulate sending password reset instructions."""
     email = str(payload.get("email", "")).strip().lower()
     if not email:
-        return jsonify({"message": "Email is required."}), 400
+        return jsonify({"message": "Email is required."}, 400)
 
     if email == ADMIN_EMAIL:
-        print(
-            "\n[ADMIN RESET MOCK] http://localhost:5173/reset-password?role=admin\n"
-        )
+        print("\n[ADMIN RESET MOCK] http://localhost:5173/reset-password?role=admin\n")
         return jsonify(
-            {
-                "message": "Password reset instructions have been logged in the console."
-            }
+            {"message": "Password reset instructions have been logged in the console."}
         )
 
     store = auth_model.get_store_by_email(email)
     if not store:
-        return jsonify({"message": "No account found with this email."}), 404
+        return jsonify({"message": "No account found with this email."}, 404)
 
     print(
         f"\n[STORE OWNER RESET MOCK] http://localhost:5173/reset-password?store_id={store['id']}\n"
@@ -207,10 +200,10 @@ def submit_contact_form(payload: dict):
     message = str(payload.get("message", "")).strip()
 
     if not name or not email or not message:
-        return jsonify({"message": "Name, email, and message are required."}), 400
+        return jsonify({"message": "Name, email, and message are required."}, 400)
 
-    from utils.email import send_email
     from config import ADMIN_NOTIFICATION_EMAIL
+    from utils.email import send_email
 
     subject = f"New Feedback/Contact from {name}"
     html_content = f"""
@@ -227,7 +220,12 @@ def submit_contact_form(payload: dict):
 
     success = send_email(ADMIN_NOTIFICATION_EMAIL, subject, html_content)
     if success:
-        return jsonify({"message": "Thank you! Your feedback has been sent to our developer."}), 200
+        return jsonify(
+            {"message": "Thank you! Your feedback has been sent to our developer."},
+            200,
+        )
     else:
-        return jsonify({"message": "Feedback submitted successfully (simulated log generated)."}), 200
-
+        return jsonify(
+            {"message": "Feedback submitted successfully (simulated log generated)."},
+            200,
+        )

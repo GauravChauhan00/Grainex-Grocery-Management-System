@@ -1,32 +1,39 @@
-"""Super Admin management routes blueprint."""
+"""Super Admin management routes router."""
 
-from flask import Blueprint
+from fastapi import APIRouter, Depends
 
 from controllers import admin_controller
-from utils.auth import admin_required
+from schemas.admin_schema import StoreStatusSchema
+from utils.auth import get_current_admin
 
-admin_blueprint = Blueprint("admin_routes", __name__)
+admin_router = APIRouter(tags=["Super Admin"])
 
 
-@admin_blueprint.get("/stats")
-@admin_required
-def stats_route():
+@admin_router.get("/stats")
+def stats_route(_admin: dict = Depends(get_current_admin)):
     return admin_controller.get_stats()
 
 
-@admin_blueprint.get("/stores")
-@admin_required
-def stores_route():
-    return admin_controller.list_stores()
+@admin_router.get("/stores")
+def stores_route(
+    search: str = "",
+    _admin: dict = Depends(get_current_admin),
+):
+    return admin_controller.list_stores(search=search)
 
 
-@admin_blueprint.post("/stores/<int:store_id>/status")
-@admin_required
-def change_status_route(store_id: int):
-    return admin_controller.change_store_status(store_id)
+@admin_router.post("/stores/{store_id}/status")
+def change_status_route(
+    store_id: int,
+    payload: StoreStatusSchema,
+    _admin: dict = Depends(get_current_admin),
+):
+    return admin_controller.change_store_status(store_id, payload.model_dump())
 
 
-@admin_blueprint.delete("/stores/<int:store_id>")
-@admin_required
-def remove_store_route(store_id: int):
+@admin_router.delete("/stores/{store_id}")
+def remove_store_route(
+    store_id: int,
+    _admin: dict = Depends(get_current_admin),
+):
     return admin_controller.remove_store(store_id)

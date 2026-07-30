@@ -1,35 +1,45 @@
 """URL definitions for category endpoints with token authentication protection."""
 
-from flask import Blueprint, g, request
+from fastapi import APIRouter, Depends
+
 from controllers import category_controller
-from utils.auth import token_required
+from schemas.category_schema import CategorySchema
+from utils.auth import get_current_user
 
-category_blueprint = Blueprint("categories", __name__)
-
-
-@category_blueprint.get("")
-@token_required
-def list_categories():
-    return category_controller.list_categories(g.store_id)
+category_router = APIRouter(tags=["Categories"])
 
 
-@category_blueprint.post("")
-@token_required
-def create_category():
+@category_router.get("")
+def list_categories(current_user: dict = Depends(get_current_user)):
+    return category_controller.list_categories(current_user.get("store_id"))
+
+
+@category_router.post("")
+def create_category(
+    payload: CategorySchema,
+    current_user: dict = Depends(get_current_user),
+):
     return category_controller.create_category(
-        g.store_id, request.get_json(silent=True) or {}
+        current_user.get("store_id"), payload.model_dump()
     )
 
 
-@category_blueprint.put("/<int:category_id>")
-@token_required
-def update_category(category_id: int):
+@category_router.put("/{category_id}")
+def update_category(
+    category_id: int,
+    payload: CategorySchema,
+    current_user: dict = Depends(get_current_user),
+):
     return category_controller.update_category(
-        category_id, g.store_id, request.get_json(silent=True) or {}
+        category_id, current_user.get("store_id"), payload.model_dump()
     )
 
 
-@category_blueprint.delete("/<int:category_id>")
-@token_required
-def delete_category(category_id: int):
-    return category_controller.delete_category(category_id, g.store_id)
+@category_router.delete("/{category_id}")
+def delete_category(
+    category_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    return category_controller.delete_category(
+        category_id, current_user.get("store_id")
+    )

@@ -2,10 +2,10 @@
 
 import sqlite3
 from datetime import datetime
-from flask import jsonify
 
 from config import DEFAULT_LOW_STOCK_THRESHOLD
 from models import product_model
+from utils.response import jsonify
 
 
 def _parse_integer(value, field_name: str, minimum: int = 0) -> int:
@@ -54,9 +54,7 @@ def _validate_product(store_id: int, payload: dict) -> dict:
     if len(supplier_name) > 120:
         raise ValueError("Supplier name must be 120 characters or fewer.")
 
-    category_id = _parse_integer(
-        payload.get("category_id"), "Category", minimum=1
-    )
+    category_id = _parse_integer(payload.get("category_id"), "Category", minimum=1)
     if not product_model.category_exists(category_id, store_id):
         raise ValueError("Please select a valid category from your store.")
 
@@ -68,23 +66,19 @@ def _validate_product(store_id: int, payload: dict) -> dict:
         "supplier_name": supplier_name,
         "expiry_date": _validate_expiry_date(payload.get("expiry_date")),
         "low_stock_threshold": _parse_integer(
-            payload.get(
-                "low_stock_threshold", DEFAULT_LOW_STOCK_THRESHOLD
-            ),
+            payload.get("low_stock_threshold", DEFAULT_LOW_STOCK_THRESHOLD),
             "Low-stock threshold",
         ),
     }
 
 
-def list_products(
-    store_id: int, search: str, category_id: str | None, status: str
-):
+def list_products(store_id: int, search: str, category_id: str | None, status: str):
     parsed_category_id = None
     if category_id:
         try:
             parsed_category_id = int(category_id)
         except ValueError:
-            return jsonify({"message": "Category filter must be a number."}), 400
+            return jsonify({"message": "Category filter must be a number."}, 400)
 
     products = product_model.get_all_products(
         store_id=store_id,
@@ -98,7 +92,7 @@ def list_products(
 def get_product(product_id: int, store_id: int):
     product = product_model.get_product_by_id(product_id, store_id)
     if product is None:
-        return jsonify({"message": "Product not found."}), 404
+        return jsonify({"message": "Product not found."}, 404)
     return jsonify({"data": product})
 
 
@@ -106,63 +100,48 @@ def create_product(store_id: int, payload: dict):
     try:
         product_data = _validate_product(store_id, payload)
         product = product_model.create_product(store_id, product_data)
-        return (
-            jsonify({"message": "Product added successfully.", "data": product}),
-            201,
+        return jsonify(
+            {"message": "Product added successfully.", "data": product}, 201
         )
     except ValueError as error:
-        return jsonify({"message": str(error)}), 400
+        return jsonify({"message": str(error)}, 400)
     except sqlite3.IntegrityError:
-        return (
-            jsonify(
-                {
-                    "message": "This product already exists in the selected category."
-                }
-            ),
+        return jsonify(
+            {"message": "This product already exists in the selected category."},
             409,
         )
 
 
 def update_product(product_id: int, store_id: int, payload: dict):
     if product_model.get_product_by_id(product_id, store_id) is None:
-        return jsonify({"message": "Product not found."}), 404
+        return jsonify({"message": "Product not found."}, 404)
 
     try:
         product_data = _validate_product(store_id, payload)
-        product = product_model.update_product(
-            product_id, store_id, product_data
-        )
-        return jsonify(
-            {"message": "Product updated successfully.", "data": product}
-        )
+        product = product_model.update_product(product_id, store_id, product_data)
+        return jsonify({"message": "Product updated successfully.", "data": product})
     except ValueError as error:
-        return jsonify({"message": str(error)}), 400
+        return jsonify({"message": str(error)}, 400)
     except sqlite3.IntegrityError:
-        return (
-            jsonify(
-                {
-                    "message": "This product already exists in the selected category."
-                }
-            ),
+        return jsonify(
+            {"message": "This product already exists in the selected category."},
             409,
         )
 
 
 def delete_product(product_id: int, store_id: int):
     if product_model.get_product_by_id(product_id, store_id) is None:
-        return jsonify({"message": "Product not found."}), 404
+        return jsonify({"message": "Product not found."}, 404)
 
     sale_count = product_model.count_sales_for_product(product_id, store_id)
     if sale_count > 0:
-        return (
-            jsonify(
-                {
-                    "message": (
-                        f"This product has {sale_count} sale record(s), so it cannot be deleted. "
-                        "Keeping it protects the sales report history."
-                    )
-                }
-            ),
+        return jsonify(
+            {
+                "message": (
+                    f"This product has {sale_count} sale record(s), so it cannot be deleted. "
+                    "Keeping it protects the sales report history."
+                )
+            },
             409,
         )
 

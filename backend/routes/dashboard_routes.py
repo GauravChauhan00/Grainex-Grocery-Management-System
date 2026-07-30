@@ -1,13 +1,13 @@
 """URL definition for the dashboard summary endpoint with token protection."""
 
-from flask import Blueprint, g
+from fastapi import APIRouter, Depends
+
 from controllers.dashboard_controller import dashboard_summary
-from utils.auth import token_required
+from utils.auth import get_current_user
 
-dashboard_blueprint = Blueprint("dashboard", __name__)
+dashboard_router = APIRouter(tags=["Dashboard"])
 
 
-@dashboard_blueprint.get("/dashboard-summary")
-@token_required
-def get_summary_route():
-    return dashboard_summary(g.store_id)
+@dashboard_router.get("/dashboard-summary")
+def get_summary_route(current_user: dict = Depends(get_current_user)):
+    return dashboard_summary(current_user.get("store_id"))

@@ -1,9 +1,9 @@
 """Validation and response logic for sales reporting with store isolation."""
 
 from datetime import datetime
-from flask import jsonify
 
 from models.report_model import get_sales_report
+from utils.response import jsonify
 
 VALID_PERIODS = {"daily", "weekly", "monthly"}
 
@@ -30,7 +30,7 @@ def sales_report(
         if start_date and end_date and start_date > end_date:
             raise ValueError("Start date cannot be after end date.")
     except ValueError as error:
-        return jsonify({"message": str(error)}), 400
+        return jsonify({"message": str(error)}, 400)
 
     report = get_sales_report(store_id, start_date, end_date, period)
     return jsonify({"data": report})

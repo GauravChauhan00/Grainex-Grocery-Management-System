@@ -1,13 +1,15 @@
-"""Authentication decorators and token management utilities using itsdangerous."""
+"""Authentication token management utilities and FastAPI security dependencies using itsdangerous."""
 
-import functools
-from flask import g, jsonify, request
+from fastapi import Depends, HTTPException, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 
 from config import SECRET_KEY
 
 # Tokens expire after 30 days
 TOKEN_MAX_AGE = 30 * 24 * 60 * 60
+
+security_scheme = HTTPBearer(auto_error=False)
 
 
 def get_serializer():
@@ -29,59 +31,39 @@ def decode_token(token: str) -> dict | None:
         return None
 
 
-def token_required(f):
-    """Decorator to require token authentication on API routes."""
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Security(security_scheme),
+) -> dict:
+    """FastAPI dependency to validate token and return user payload."""
+    if not credentials or not credentials.credentials:
+        raise HTTPException(status_code=401, detail="Authentication token is missing.")
 
-    @functools.wraps(f)
-    def decorated(*args, **kwargs):
-        token = None
+    token = credentials.credentials
+    user_data = decode_token(token)
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Invalid or expired token.")
 
-        if "Authorization" in request.headers:
-            auth_header = request.headers["Authorization"]
-            if auth_header.startswith("Bearer "):
-                token = auth_header.split(" ")[1]
+    store_id = user_data.get("store_id")
 
-        if not token:
-            return jsonify({"message": "Authentication token is missing."}), 401
+    # Block requests if store is suspended (excluding super admin)
+    if user_data.get("role") != "admin" and store_id:
+        from database.connection import database_connection
 
-        user_data = decode_token(token)
-        if not user_data:
-            return jsonify({"message": "Invalid or expired token."}), 401
+        with database_connection() as conn:
+            row = conn.execute(
+                "SELECT status FROM stores WHERE id = ?", (store_id,)
+            ).fetchone()
+            if row and row["status"] == "suspended":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Your store account has been suspended. Please contact customer support.",
+                )
 
-        g.user = user_data
-        g.store_id = user_data.get("store_id")
-
-        # Block requests if store is suspended (excluding super admin)
-        if user_data.get("role") != "admin" and g.store_id:
-            from database.connection import database_connection
-
-            with database_connection() as conn:
-                row = conn.execute(
-                    "SELECT status FROM stores WHERE id = ?", (g.store_id,)
-                ).fetchone()
-                if row and row["status"] == "suspended":
-                    return (
-                        jsonify(
-                            {
-                                "message": "Your store account has been suspended. Please contact customer support."
-                            }
-                        ),
-                        403,
-                    )
-
-        return f(*args, **kwargs)
-
-    return decorated
+    return user_data
 
 
-def admin_required(f):
-    """Decorator to require superadmin privileges."""
-
-    @functools.wraps(f)
-    @token_required
-    def decorated(*args, **kwargs):
-        if g.user.get("role") != "admin":
-            return jsonify({"message": "Super Admin access required."}), 403
-        return f(*args, **kwargs)
-
-    return decorated
+def get_current_admin(user_data: dict = Depends(get_current_user)) -> dict:
+    """FastAPI dependency to ensure user has superadmin role."""
+    if user_data.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Super Admin access required.")
+    return user_data

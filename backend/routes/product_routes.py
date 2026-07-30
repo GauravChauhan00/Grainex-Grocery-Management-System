@@ -1,49 +1,64 @@
 """URL definitions for product endpoints with token authentication protection."""
 
-from flask import Blueprint, g, request
+from typing import Optional
+from fastapi import APIRouter, Depends
 
 from controllers import product_controller
-from utils.auth import token_required
+from schemas.product_schema import ProductSchema
+from utils.auth import get_current_user
 
-product_blueprint = Blueprint("products", __name__)
+product_router = APIRouter(tags=["Products"])
 
 
-@product_blueprint.get("")
-@token_required
-def list_products():
+@product_router.get("")
+def list_products(
+    search: str = "",
+    category_id: Optional[str] = None,
+    status: str = "",
+    current_user: dict = Depends(get_current_user),
+):
     return product_controller.list_products(
-        store_id=g.store_id,
-        search=request.args.get("search", ""),
-        category_id=request.args.get("category_id"),
-        status=request.args.get("status", ""),
+        store_id=current_user.get("store_id"),
+        search=search,
+        category_id=category_id,
+        status=status,
     )
 
 
-@product_blueprint.get("/<int:product_id>")
-@token_required
-def get_product(product_id: int):
-    return product_controller.get_product(product_id, g.store_id)
+@product_router.get("/{product_id}")
+def get_product(
+    product_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    return product_controller.get_product(product_id, current_user.get("store_id"))
 
 
-@product_blueprint.post("")
-@token_required
-def create_product():
+@product_router.post("")
+def create_product(
+    payload: ProductSchema,
+    current_user: dict = Depends(get_current_user),
+):
     return product_controller.create_product(
-        g.store_id, request.get_json(silent=True) or {}
+        current_user.get("store_id"), payload.model_dump()
     )
 
 
-@product_blueprint.put("/<int:product_id>")
-@token_required
-def update_product(product_id: int):
+@product_router.put("/{product_id}")
+def update_product(
+    product_id: int,
+    payload: ProductSchema,
+    current_user: dict = Depends(get_current_user),
+):
     return product_controller.update_product(
         product_id,
-        g.store_id,
-        request.get_json(silent=True) or {},
+        current_user.get("store_id"),
+        payload.model_dump(),
     )
 
 
-@product_blueprint.delete("/<int:product_id>")
-@token_required
-def delete_product(product_id: int):
-    return product_controller.delete_product(product_id, g.store_id)
+@product_router.delete("/{product_id}")
+def delete_product(
+    product_id: int,
+    current_user: dict = Depends(get_current_user),
+):
+    return product_controller.delete_product(product_id, current_user.get("store_id"))

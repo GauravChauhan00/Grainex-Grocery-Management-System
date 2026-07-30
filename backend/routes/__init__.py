@@ -1,23 +1,23 @@
-"""Register all REST API blueprints in one place."""
+"""Register all REST API routers in one place."""
 
-from flask import Flask
+from fastapi import FastAPI
 
 from config import API_PREFIX
-from routes.category_routes import category_blueprint
-from routes.dashboard_routes import dashboard_blueprint
-from routes.product_routes import product_blueprint
-from routes.report_routes import report_blueprint
-from routes.sale_routes import sale_blueprint
-from routes.auth_routes import auth_blueprint
-from routes.admin_routes import admin_blueprint
+from routes.admin_routes import admin_router
+from routes.auth_routes import auth_router
+from routes.category_routes import category_router
+from routes.dashboard_routes import dashboard_router
+from routes.product_routes import product_router
+from routes.report_routes import report_router
+from routes.sale_routes import sale_router
 
 
-def register_routes(app: Flask) -> None:
-    app.register_blueprint(product_blueprint, url_prefix=f"{API_PREFIX}/products")
-    app.register_blueprint(category_blueprint, url_prefix=f"{API_PREFIX}/categories")
-    app.register_blueprint(sale_blueprint, url_prefix=f"{API_PREFIX}/sales")
-    app.register_blueprint(dashboard_blueprint, url_prefix=API_PREFIX)
-    app.register_blueprint(report_blueprint, url_prefix=f"{API_PREFIX}/reports")
-    app.register_blueprint(auth_blueprint, url_prefix=f"{API_PREFIX}/auth")
-    app.register_blueprint(admin_blueprint, url_prefix=f"{API_PREFIX}/admin")
 
+def register_routes(app: FastAPI) -> None:
+    app.include_router(product_router, prefix=f"{API_PREFIX}/products")
+    app.include_router(category_router, prefix=f"{API_PREFIX}/categories")
+    app.include_router(sale_router, prefix=f"{API_PREFIX}/sales")
+    app.include_router(dashboard_router, prefix=API_PREFIX)
+    app.include_router(report_router, prefix=f"{API_PREFIX}/reports")
+    app.include_router(auth_router, prefix=f"{API_PREFIX}/auth")
+    app.include_router(admin_router, prefix=f"{API_PREFIX}/admin")
